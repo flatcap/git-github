@@ -13,11 +13,11 @@ use Readonly;
 Readonly my $DATE_LEN  => 10;
 Readonly my $MAX_PAGES => 20;
 
-sub get_gist_page
+sub get_repo_page
 {
 	my ($user, $page) = @_;
 
-	my $url = sprintf 'https://api.github.com/users/%s/gists?page=%d', $user, $page;
+	my $url = sprintf 'https://api.github.com/users/%s/repos?page=%d', $user, $page;
 
 	my $json_str = get ($url);
 	if (!defined $json_str) {
@@ -30,13 +30,13 @@ sub get_gist_page
 	return $obj;
 }
 
-sub get_all_gists
+sub get_all_repos
 {
 	my ($user) = @_;
-	my @gists;
+	my @repos;
 
 	for my $i (1 .. $MAX_PAGES) {
-		my @pages = get_gist_page ($user, $i);
+		my @pages = get_repo_page ($user, $i);
 		if (!@pages) {
 			return;
 		}
@@ -46,32 +46,32 @@ sub get_all_gists
 			last;
 		}
 
-		foreach my $g (keys $pages[0]) {
-			push @gists, $pages[0][$g];
+		foreach my $r (keys $pages[0]) {
+			if ($pages[0][$r]->{'fork'}) {
+				next;
+			}
+			push @repos, $pages[0][$r];
 		}
 	}
 
-	return @gists;
+	return @repos;
 }
 
 sub main
 {
 	my $user = $ARGV[0] || 'flatcap';
 
-	my @gists = get_all_gists ($user);
-	if (!@gists) {
+	my @repos = get_all_repos ($user);
+	if (!@repos) {
 		return;
 	}
 
-	for my $g (@gists) {
-		my $date = substr $g->{'created_at'}, 0, $DATE_LEN;
-		printf "%s - %s\n", $date, $g->{'id'};
-		my $d = $g->{'description'};
+	for my $r (@repos) {
+		my $date = substr $r->{'created_at'}, 0, $DATE_LEN;
+		printf "%s - %s\n", $date, $r->{'name'};
+		my $d = $r->{'description'};
 		if ($d) {
 			printf "\t\"%s\"\n", $d;
-		}
-		for my $f (keys $g->{'files'}) {
-			printf "\t%s (%d bytes)\n", $f, $g->{'files'}->{$f}->{'size'};
 		}
 		printf "\n";
 	}
