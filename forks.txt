@@ -1,0 +1,3 @@
+tpope/vim-fugitive
+hoxu/gitstats
+sjl/learnvimscriptthehardway
